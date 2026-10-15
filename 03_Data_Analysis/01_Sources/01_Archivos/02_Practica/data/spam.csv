@@ -1,0 +1,55 @@
+from|to|is_spam|confidence
+stephen.marquard@uct.ac.za|source@collab.sakaiproject.org|False|0.8475
+louis@media.berkeley.edu|source@collab.sakaiproject.org|False|0.6178
+zqian@umich.edu|source@collab.sakaiproject.org|False|0.6961
+rjlowe@iupui.edu|source@collab.sakaiproject.org|False|0.7565
+zqian@umich.edu|source@collab.sakaiproject.org|False|0.7626
+rjlowe@iupui.edu|source@collab.sakaiproject.org|False|0.7556
+cwen@iupui.edu|source@collab.sakaiproject.org|False|0.7002
+cwen@iupui.edu|source@collab.sakaiproject.org|False|0.7615
+gsilver@umich.edu|source@collab.sakaiproject.org|False|0.7601
+gsilver@umich.edu|source@collab.sakaiproject.org|False|0.7605
+zqian@umich.edu|source@collab.sakaiproject.org|False|0.6959
+gsilver@umich.edu|source@collab.sakaiproject.org|False|0.7606
+wagnermr@iupui.edu|source@collab.sakaiproject.org|False|0.7559
+zqian@umich.edu|source@collab.sakaiproject.org|False|0.7605
+antranig@caret.cam.ac.uk|source@collab.sakaiproject.org|False|0.6932
+gopal.ramasammycook@gmail.com|source@collab.sakaiproject.org|False|0.7558
+david.horwitz@uct.ac.za|source@collab.sakaiproject.org|False|0.6526
+david.horwitz@uct.ac.za|source@collab.sakaiproject.org|False|0.6948
+david.horwitz@uct.ac.za|source@collab.sakaiproject.org|False|0.6528
+david.horwitz@uct.ac.za|source@collab.sakaiproject.org|False|0.7002
+stephen.marquard@uct.ac.za|source@collab.sakaiproject.org|False|0.7554
+louis@media.berkeley.edu|source@collab.sakaiproject.org|False|0.6956
+louis@media.berkeley.edu|source@collab.sakaiproject.org|False|0.6959
+ray@media.berkeley.edu|source@collab.sakaiproject.org|False|0.7556
+cwen@iupui.edu|source@collab.sakaiproject.org|False|0.9846
+cwen@iupui.edu|source@collab.sakaiproject.org|False|0.8509
+cwen@iupui.edu|source@collab.sakaiproject.org|False|0.9907
+ stephen.marquard@uct.ac.za| source@collab.sakaiproject.org|False|0.8475
+ louis@media.berkeley.edu| source@collab.sakaiproject.org|False|0.6178
+ zqian@umich.edu| source@collab.sakaiproject.org|False|0.6961
+ rjlowe@iupui.edu| source@collab.sakaiproject.org|False|0.7565
+ zqian@umich.edu| source@collab.sakaiproject.org|False|0.7626
+ rjlowe@iupui.edu| source@collab.sakaiproject.org|False|0.7556
+ cwen@iupui.edu| source@collab.sakaiproject.org|False|0.7002
+ cwen@iupui.edu| source@collab.sakaiproject.org|False|0.7615
+ gsilver@umich.edu| source@collab.sakaiproject.org|False|0.7601
+ gsilver@umich.edu| source@collab.sakaiproject.org|False|0.7605
+ zqian@umich.edu| source@collab.sakaiproject.org|False|0.6959
+ gsilver@umich.edu| source@collab.sakaiproject.org|False|0.7606
+ wagnermr@iupui.edu| source@collab.sakaiproject.org|False|0.7559
+ zqian@umich.edu| source@collab.sakaiproject.org|False|0.7605
+ antranig@caret.cam.ac.uk| source@collab.sakaiproject.org|False|0.6932
+ gopal.ramasammycook@gmail.com| source@collab.sakaiproject.org|False|0.7558
+ david.horwitz@uct.ac.za| source@collab.sakaiproject.org|False|0.6526
+ david.horwitz@uct.ac.za| source@collab.sakaiproject.org|False|0.6948
+ david.horwitz@uct.ac.za| source@collab.sakaiproject.org|False|0.6528
+ david.horwitz@uct.ac.za| source@collab.sakaiproject.org|False|0.7002
+ stephen.marquard@uct.ac.za| source@collab.sakaiproject.org|False|0.7554
+ louis@media.berkeley.edu| source@collab.sakaiproject.org|False|0.6956
+ louis@media.berkeley.edu| source@collab.sakaiproject.org|False|0.6959
+ ray@media.berkeley.edu| source@collab.sakaiproject.org|False|0.7556
+ cwen@iupui.edu| source@collab.sakaiproject.org|False|0.9846
+ cwen@iupui.edu| source@collab.sakaiproject.org|False|0.8509
+ cwen@iupui.edu| source@collab.sakaiproject.org|False|0.9907
