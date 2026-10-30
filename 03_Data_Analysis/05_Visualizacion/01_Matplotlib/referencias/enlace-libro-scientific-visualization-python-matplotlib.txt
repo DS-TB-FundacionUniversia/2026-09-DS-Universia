@@ -1,0 +1,6 @@
+Scientific Visualization: Python + Matplotlib
+Autor: Nicolas P. Rougier
+
+Libro en PDF: https://inria.hal.science/hal-03427242/document
+
+Repo GitHub: https://github.com/rougier/scientific-visualization-book
