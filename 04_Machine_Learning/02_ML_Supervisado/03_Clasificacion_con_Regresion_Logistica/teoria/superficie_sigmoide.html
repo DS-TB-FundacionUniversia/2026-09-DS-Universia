@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Superficie sigmoide de la regresión logística</title>
+<style>
+.sigw{--fg:#1f2328;--muted:#5f6670;--grid:#9aa1a9;--track:#d0d5db;--bg:#ffffff;
+  font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;color:var(--fg);background:var(--bg);
+  max-width:560px;padding:12px 14px;box-sizing:border-box}
+@media (prefers-color-scheme:dark){.sigw{--fg:#e6e8eb;--muted:#a3aab3;--grid:#6b727a;--track:#3a4048;--bg:#16181c}}
+.sigw canvas{width:100%;height:320px;display:block}
+.sigw .leg{display:flex;gap:16px;flex-wrap:wrap;font-size:12px;color:var(--muted);margin:4px 0 10px}
+.sigw .sw{display:inline-block;width:18px;border-top:2px solid;vertical-align:middle;margin-right:5px}
+.sigw .dot{display:inline-block;width:9px;height:9px;border-radius:50%;vertical-align:middle;margin-right:5px}
+.sigw .row{display:flex;align-items:center;gap:10px;margin:6px 0}
+.sigw .row label{font-size:13px;color:var(--muted);min-width:100px}
+.sigw .row output{font-size:13px;font-weight:500;min-width:40px;text-align:right;font-variant-numeric:tabular-nums}
+.sigw input[type=range]{flex:1;accent-color:#378ADD}
+.sigw .eq{font-size:13px;color:var(--muted);margin:8px 0 0}
+</style>
+</head>
+<body style="margin:0">
+<div class="sigw">
+  <canvas aria-label="Superficie sigmoide p = σ(k·(w₁x₁ + w₂x₂ + b)) y su frontera de decisión proyectada sobre el plano x₁, x₂"></canvas>
+  <div class="leg">
+    <span><i class="sw" style="border-color:#D85A30"></i>p = 0.5 (frontera)</span>
+    <span><i class="sw" style="border-color:#1D9E75;border-top-style:dashed"></i>p = umbral</span>
+    <span><i class="dot" style="background:#993C1D"></i>clase 1 (y = 1)</span>
+    <span><i class="dot" style="background:#0C447C"></i>clase 0 (y = 0)</span>
+  </div>
+  <div class="row"><label for="sg-rot">Girar vista</label><input type="range" id="sg-rot" data-k="rot" min="-80" max="80" step="1" value="35"><output data-o="rot"></output></div>
+  <div class="row"><label for="sg-k">Escala de w</label><input type="range" id="sg-k" data-k="k" min="0.3" max="6" step="0.1" value="1.5"><output data-o="k"></output></div>
+  <div class="row"><label for="sg-th">Umbral</label><input type="range" id="sg-th" data-k="th" min="0.05" max="0.95" step="0.05" value="0.8"><output data-o="th"></output></div>
+  <p class="eq">p = σ(k · (1.0·x₁ + 0.6·x₂ + 0.3))</p>
+</div>
+<script>
+(function () {
+  var roots = document.querySelectorAll('.sigw:not([data-init])');
+  roots.forEach(function (root) {
+    root.setAttribute('data-init', '1');
+    var cv = root.querySelector('canvas'), ctx = cv.getContext('2d');
+    var inp = {}, out = {};
+    root.querySelectorAll('input[data-k]').forEach(function (el) { inp[el.dataset.k] = el; });
+    root.querySelectorAll('output[data-o]').forEach(function (el) { out[el.dataset.o] = el; });
+
+    var w1 = 1, w2 = 0.6, b = 0.3, R = 3, N = 24, HGT = 320;
+    function sig(v) { return 1 / (1 + Math.exp(-v)); }
+
+    var seed = 27;
+    function rng() { seed = (seed * 1664525 + 1013904223) % 4294967296; return seed / 4294967296; }
+    var data = [];
+    for (var n = 0; n < 36; n++) {
+      var dx = -2.7 + 5.4 * rng(), dy = -2.7 + 5.4 * rng();
+      var pr = sig(2.5 * (w1 * dx + w2 * dy + b));
+      data.push({ x: dx, y: dy, c: rng() < pr ? 1 : 0 });
+    }
+    function size() {
+      var d = window.devicePixelRatio || 1;
+      cv.width = cv.clientWidth * d; cv.height = HGT * d;
+      ctx.setTransform(d, 0, 0, d, 0, 0);
+    }
+    function draw() {
+      var a = +inp.rot.value * Math.PI / 180, k = +inp.k.value, t = +inp.th.value;
+      out.rot.textContent = inp.rot.value + '°';
+      out.k.textContent = k.toFixed(1);
+      out.th.textContent = t.toFixed(2);
+
+      var Wd = cv.clientWidth, H = HGT, e = 0.5, s = Wd / 9.5, cx = Wd / 2, cy = H * 0.68, Z = 3.2;
+      var cs = getComputedStyle(root);
+      var grid = cs.getPropertyValue('--grid').trim(), fg = cs.getPropertyValue('--muted').trim();
+
+      function P(x, y, z) {
+        var u = x * Math.cos(a) - y * Math.sin(a), d = x * Math.sin(a) + y * Math.cos(a);
+        return [cx + s * u, cy - s * (z * Z * Math.cos(e) + d * Math.sin(e)), d];
+      }
+      function p(x, y) { return sig(k * (w1 * x + w2 * y + b)); }
+
+      ctx.clearRect(0, 0, Wd, H);
+
+      ctx.strokeStyle = grid; ctx.globalAlpha = 0.45; ctx.lineWidth = 1;
+      for (var i = -R; i <= R; i++) {
+        var A = P(i, -R, 0), B = P(i, R, 0);
+        ctx.beginPath(); ctx.moveTo(A[0], A[1]); ctx.lineTo(B[0], B[1]); ctx.stroke();
+        A = P(-R, i, 0); B = P(R, i, 0);
+        ctx.beginPath(); ctx.moveTo(A[0], A[1]); ctx.lineTo(B[0], B[1]); ctx.stroke();
+      }
+      ctx.globalAlpha = 1;
+
+      function line(c, z, col, dash) {
+        ctx.strokeStyle = col; ctx.setLineDash(dash); ctx.lineWidth = 2.2; ctx.beginPath();
+        var started = false;
+        for (var x = -R; x <= R; x += 0.02) {
+          var y = (c - w1 * x) / w2;
+          if (Math.abs(y) > R) continue;
+          var q = P(x, y, z);
+          if (!started) { ctx.moveTo(q[0], q[1]); started = true; } else ctx.lineTo(q[0], q[1]);
+        }
+        ctx.stroke(); ctx.setLineDash([]);
+      }
+
+      var ct = Math.log(t / (1 - t)) / k - b;
+      line(-b, 0, '#D85A30', []);
+      line(ct, 0, '#1D9E75', [6, 4]);
+
+      var quads = [], st = 2 * R / N;
+      for (var ii = 0; ii < N; ii++) for (var jj = 0; jj < N; jj++) {
+        var x = -R + ii * st, y = -R + jj * st;
+        var xs = [x, x + st, x + st, x], ys = [y, y, y + st, y + st];
+        var pts = xs.map(function (xx, n) { return P(xx, ys[n], p(xx, ys[n])); });
+        quads.push({ pts: pts, z: p(x + st / 2, y + st / 2), d: P(x + st / 2, y + st / 2, 0)[2] });
+      }
+      data.forEach(function (pt) { quads.push({ pt: pt, d: P(pt.x, pt.y, 0)[2] - 0.01 }); });
+      quads.sort(function (A, B) { return B.d - A.d; });
+
+      function drawPt(pt) {
+        var base = P(pt.x, pt.y, 0), top = P(pt.x, pt.y, pt.c);
+        var col = pt.c ? '#993C1D' : '#0C447C';
+        if (pt.c) {
+          ctx.strokeStyle = grid; ctx.lineWidth = 1; ctx.setLineDash([2, 3]);
+          ctx.beginPath(); ctx.moveTo(base[0], base[1]); ctx.lineTo(top[0], top[1]); ctx.stroke();
+          ctx.setLineDash([]);
+          ctx.fillStyle = col; ctx.globalAlpha = 0.5;
+          ctx.beginPath(); ctx.arc(base[0], base[1], 2, 0, 2 * Math.PI); ctx.fill();
+          ctx.globalAlpha = 1;
+        }
+        ctx.fillStyle = col; ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 1.2;
+        ctx.beginPath(); ctx.arc(top[0], top[1], 4.5, 0, 2 * Math.PI); ctx.fill(); ctx.stroke();
+      }
+
+      var c0 = [55, 138, 221], c1 = [216, 90, 48];
+      quads.forEach(function (o) {
+        if (o.pt) { drawPt(o.pt); return; }
+        var c = c0.map(function (v, n) { return Math.round(v + (c1[n] - v) * o.z); }).join(',');
+        ctx.fillStyle = 'rgba(' + c + ',0.55)';
+        ctx.strokeStyle = 'rgba(' + c + ',0.9)';
+        ctx.lineWidth = 0.5; ctx.beginPath();
+        o.pts.forEach(function (r, n) { n ? ctx.lineTo(r[0], r[1]) : ctx.moveTo(r[0], r[1]); });
+        ctx.closePath(); ctx.fill(); ctx.stroke();
+      });
+
+      line(-b, 0.5, '#D85A30', []);
+      line(ct, t, '#1D9E75', [6, 4]);
+
+      ctx.fillStyle = fg; ctx.strokeStyle = fg; ctx.lineWidth = 1; ctx.font = '12px system-ui, sans-serif';
+      var L = P(R + 0.5, 0, 0); ctx.fillText('x₁', L[0], L[1]);
+      L = P(0, R + 0.5, 0); ctx.fillText('x₂', L[0], L[1]);
+      var L0 = P(-R, -R, 0); L = P(-R, -R, 1);
+      ctx.beginPath(); ctx.moveTo(L0[0], L0[1]); ctx.lineTo(L[0], L[1]); ctx.stroke();
+      ctx.fillText('p = 1', L[0] + 4, L[1]);
+    }
+
+    Object.keys(inp).forEach(function (key) { inp[key].addEventListener('input', draw); });
+    window.addEventListener('resize', function () { size(); draw(); });
+    size(); draw();
+  });
+})();
+</script>
+</body>
+</html>
