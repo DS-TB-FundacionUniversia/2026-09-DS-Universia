@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Del plano separador a la sigmoide</title>
+<style>
+.p2s{--fg:#1f2328;--muted:#5f6670;--grid:#9aa1a9;--bg:#ffffff;--btn:#f2f4f6;
+  font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;color:var(--fg);background:var(--bg);
+  max-width:560px;padding:12px 14px;box-sizing:border-box}
+@media (prefers-color-scheme:dark){.p2s{--fg:#e6e8eb;--muted:#a3aab3;--grid:#6b727a;--bg:#16181c;--btn:#23272d}}
+.p2s canvas{width:100%;height:360px;display:block}
+.p2s .leg{display:flex;gap:16px;flex-wrap:wrap;font-size:12px;color:var(--muted);margin:4px 0 10px}
+.p2s .sw{display:inline-block;width:18px;border-top:2px solid;vertical-align:middle;margin-right:5px}
+.p2s .dot{display:inline-block;width:9px;height:9px;border-radius:50%;vertical-align:middle;margin-right:5px}
+.p2s .row{display:flex;align-items:center;gap:10px;margin:6px 0}
+.p2s .row label{font-size:13px;color:var(--muted);min-width:100px}
+.p2s .row output{font-size:13px;font-weight:500;min-width:40px;text-align:right;font-variant-numeric:tabular-nums}
+.p2s input[type=range]{flex:1;accent-color:#378ADD}
+.p2s button{font:inherit;font-size:13px;color:var(--fg);background:var(--btn);border:1px solid var(--grid);
+  border-radius:6px;padding:6px 12px;cursor:pointer}
+.p2s button:focus-visible{outline:2px solid #378ADD;outline-offset:2px}
+.p2s .eq{font-size:14px;margin:6px 0 2px;font-variant-numeric:tabular-nums}
+</style>
+</head>
+<body style="margin:0">
+<div class="p2s">
+  <canvas aria-label="Plano de puntuación z = w·x + b sobre los datos en el plano x₁, x₂, que se transforma gradualmente en la superficie sigmoide σ(z)"></canvas>
+  <div class="leg">
+    <span><i class="sw" style="border-color:#D85A30"></i>frontera (z = 0, p = 0.5)</span>
+    <span><i class="dot" style="background:#993C1D"></i>clase 1</span>
+    <span><i class="dot" style="background:#0C447C"></i>clase 0</span>
+  </div>
+  <p class="eq" data-eq></p>
+  <div class="row"><label for="p2s-a">Transformación</label><input type="range" id="p2s-a" data-k="a" min="0" max="1" step="0.01" value="0"><output data-o="a"></output></div>
+  <div class="row"><label for="p2s-rot">Girar vista</label><input type="range" id="p2s-rot" data-k="rot" min="-80" max="80" step="1" value="35"><output data-o="rot"></output></div>
+  <div class="row"><label for="p2s-k">Escala de w</label><input type="range" id="p2s-k" data-k="k" min="0.3" max="4" step="0.1" value="1"><output data-o="k"></output></div>
+  <div class="row"><label></label><button type="button" data-anim>Aplicar sigmoide</button></div>
+</div>
+<script>
+(function () {
+  document.querySelectorAll('.p2s:not([data-init])').forEach(function (root) {
+    root.setAttribute('data-init', '1');
+    var cv = root.querySelector('canvas'), ctx = cv.getContext('2d');
+    var eq = root.querySelector('[data-eq]'), btn = root.querySelector('[data-anim]');
+    var inp = {}, out = {};
+    root.querySelectorAll('input[data-k]').forEach(function (el) { inp[el.dataset.k] = el; });
+    root.querySelectorAll('output[data-o]').forEach(function (el) { out[el.dataset.o] = el; });
+
+    var w1 = 1, w2 = 0.6, b = 0.3, R = 3, N = 24, HGT = 360, C = 0.25, HMAX = 1.6;
+    function sig(v) { return 1 / (1 + Math.exp(-v)); }
+
+    var seed = 27;
+    function rng() { seed = (seed * 1664525 + 1013904223) % 4294967296; return seed / 4294967296; }
+    var data = [];
+    for (var n = 0; n < 36; n++) {
+      var dx = -2.7 + 5.4 * rng(), dy = -2.7 + 5.4 * rng();
+      data.push({ x: dx, y: dy, c: rng() < sig(2.5 * (w1 * dx + w2 * dy + b)) ? 1 : 0 });
+    }
+
+    function size() {
+      var d = window.devicePixelRatio || 1;
+      cv.width = cv.clientWidth * d; cv.height = HGT * d;
+      ctx.setTransform(d, 0, 0, d, 0, 0);
+    }
+
+    function draw() {
+      var al = +inp.a.value, a = +inp.rot.value * Math.PI / 180, k = +inp.k.value;
+      out.a.textContent = al.toFixed(2);
+      out.rot.textContent = inp.rot.value + '°';
+      out.k.textContent = k.toFixed(1);
+      btn.textContent = al > 0.5 ? 'Volver al plano' : 'Aplicar sigmoide';
+      eq.textContent = al < 0.02 ? 'Altura = z = w·x + b   (un plano)'
+        : al > 0.98 ? 'Altura = σ(z) − 0.5   (la sigmoide)'
+        : 'Altura = mezcla entre z y σ(z)';
+
+      var Wd = cv.clientWidth, H = HGT, e = 0.42, s = Wd / 9.5, cx = Wd / 2, cy = H * 0.56, Z = 2.0;
+      var cs = getComputedStyle(root);
+      var grid = cs.getPropertyValue('--grid').trim(), fg = cs.getPropertyValue('--muted').trim();
+
+      function P(x, y, h) {
+        var u = x * Math.cos(a) - y * Math.sin(a), d = x * Math.sin(a) + y * Math.cos(a);
+        return [cx + s * u, cy - s * (h * Z * Math.cos(e) + d * Math.sin(e)), d];
+      }
+      function zz(x, y) { return k * (w1 * x + w2 * y + b); }
+      function hh(x, y) { var z = zz(x, y); return (1 - al) * C * z + al * (sig(z) - 0.5); }
+
+      ctx.clearRect(0, 0, Wd, H);
+
+      ctx.strokeStyle = grid; ctx.globalAlpha = 0.45; ctx.lineWidth = 1;
+      for (var i = -R; i <= R; i++) {
+        var A = P(i, -R, 0), B = P(i, R, 0);
+        ctx.beginPath(); ctx.moveTo(A[0], A[1]); ctx.lineTo(B[0], B[1]); ctx.stroke();
+        A = P(-R, i, 0); B = P(R, i, 0);
+        ctx.beginPath(); ctx.moveTo(A[0], A[1]); ctx.lineTo(B[0], B[1]); ctx.stroke();
+      }
+      ctx.globalAlpha = 1;
+
+      var ax0 = P(-R, -R, -0.5), ax1 = P(-R, -R, 0.5);
+      ctx.strokeStyle = fg; ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.moveTo(ax0[0], ax0[1]); ctx.lineTo(ax1[0], ax1[1]); ctx.stroke();
+      ctx.fillStyle = fg; ctx.font = '11px system-ui, sans-serif';
+      [-0.5, 0, 0.5].forEach(function (h) {
+        var q = P(-R, -R, h);
+        ctx.beginPath(); ctx.moveTo(q[0] - 4, q[1]); ctx.lineTo(q[0], q[1]); ctx.stroke();
+        var lab = al > 0.5 ? 'p = ' + (h + 0.5).toFixed(1) : 'z = ' + (h / C).toFixed(0);
+        ctx.fillText(lab, q[0] - 46, q[1] + 4);
+      });
+
+      function boundary(h, dash) {
+        ctx.strokeStyle = '#D85A30'; ctx.setLineDash(dash); ctx.lineWidth = 2.2; ctx.beginPath();
+        var started = false;
+        for (var x = -R; x <= R; x += 0.02) {
+          var y = (-b - w1 * x) / w2;
+          if (Math.abs(y) > R) continue;
+          var q = P(x, y, h);
+          if (!started) { ctx.moveTo(q[0], q[1]); started = true; } else ctx.lineTo(q[0], q[1]);
+        }
+        ctx.stroke(); ctx.setLineDash([]);
+      }
+      boundary(0, []);
+
+      var items = [], st = 2 * R / N;
+      for (var ii = 0; ii < N; ii++) for (var jj = 0; jj < N; jj++) {
+        var x = -R + ii * st, y = -R + jj * st;
+        var xs = [x, x + st, x + st, x], ys = [y, y, y + st, y + st];
+        var hs = xs.map(function (xx, m) { return hh(xx, ys[m]); });
+        if (hs.some(function (v) { return Math.abs(v) > HMAX; })) continue;
+        items.push({
+          pts: xs.map(function (xx, m) { return P(xx, ys[m], hs[m]); }),
+          p: sig(zz(x + st / 2, y + st / 2)),
+          d: P(x + st / 2, y + st / 2, 0)[2]
+        });
+      }
+      data.forEach(function (pt) { items.push({ pt: pt, d: P(pt.x, pt.y, 0)[2] - 0.01 }); });
+      items.sort(function (A, B) { return B.d - A.d; });
+
+      var c0 = [55, 138, 221], c1 = [216, 90, 48];
+      items.forEach(function (o) {
+        if (o.pt) {
+          var pt = o.pt, base = P(pt.x, pt.y, 0);
+          var h = Math.max(-HMAX, Math.min(HMAX, hh(pt.x, pt.y))), top = P(pt.x, pt.y, h);
+          ctx.strokeStyle = grid; ctx.lineWidth = 1; ctx.setLineDash([2, 3]);
+          ctx.beginPath(); ctx.moveTo(base[0], base[1]); ctx.lineTo(top[0], top[1]); ctx.stroke();
+          ctx.setLineDash([]);
+          ctx.fillStyle = pt.c ? '#993C1D' : '#0C447C'; ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 1.2;
+          ctx.beginPath(); ctx.arc(base[0], base[1], 4.5, 0, 2 * Math.PI); ctx.fill(); ctx.stroke();
+          return;
+        }
+        var c = c0.map(function (v, m) { return Math.round(v + (c1[m] - v) * o.p); }).join(',');
+        ctx.fillStyle = 'rgba(' + c + ',0.5)';
+        ctx.strokeStyle = 'rgba(' + c + ',0.85)';
+        ctx.lineWidth = 0.5; ctx.beginPath();
+        o.pts.forEach(function (r, m) { m ? ctx.lineTo(r[0], r[1]) : ctx.moveTo(r[0], r[1]); });
+        ctx.closePath(); ctx.fill(); ctx.stroke();
+      });
+
+      boundary(0, [5, 4]);
+
+      ctx.fillStyle = fg; ctx.font = '12px system-ui, sans-serif';
+      var L = P(R + 0.5, 0, 0); ctx.fillText('x₁', L[0], L[1]);
+      L = P(0, R + 0.5, 0); ctx.fillText('x₂', L[0], L[1]);
+    }
+
+    var anim = null;
+    btn.addEventListener('click', function () {
+      if (anim) cancelAnimationFrame(anim);
+      var from = +inp.a.value, to = from > 0.5 ? 0 : 1;
+      if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) { inp.a.value = to; draw(); return; }
+      var t0 = null, dur = 1600;
+      function step(ts) {
+        if (t0 === null) t0 = ts;
+        var u = Math.min(1, (ts - t0) / dur), ease = u < 0.5 ? 2 * u * u : 1 - Math.pow(-2 * u + 2, 2) / 2;
+        inp.a.value = from + (to - from) * ease; draw();
+        if (u < 1) anim = requestAnimationFrame(step); else anim = null;
+      }
+      anim = requestAnimationFrame(step);
+    });
+
+    Object.keys(inp).forEach(function (key) { inp[key].addEventListener('input', draw); });
+    window.addEventListener('resize', function () { size(); draw(); });
+    size(); draw();
+  });
+})();
+</script>
+</body>
+</html>
