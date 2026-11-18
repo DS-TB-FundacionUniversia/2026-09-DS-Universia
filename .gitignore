@@ -9,6 +9,7 @@ credentials*
 */.ipynb_checkpoints/*
 .DS_Store
 catboost_info/
+modelos/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
